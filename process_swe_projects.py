@@ -248,9 +248,10 @@ class SWEProjectProcessor:
             derived['patches_available'] = patches.get('gold_src', False) and patches.get('gold_test', False)
 
         # Add commit mapping
+        pr_info = project_data.get('pr_info') or {}
         derived['commit_mapping'] = {
-            'base': project_data.get('pr_info', {}).get('base_commit', 'N/A'),
-            'patch': project_data.get('pr_info', {}).get('patch_commit', 'N/A')
+            'base': pr_info.get('base_commit') or 'N/A',
+            'patch': pr_info.get('patch_commit') or 'N/A'
         }
 
         return derived

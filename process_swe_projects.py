@@ -7,15 +7,16 @@ from PR metadata and commit information. It validates the expected folder struct
 and generates a uniform output format for all projects.
 
 Usage:
-    python process_swe_projects.py [project_dir1] [project_dir2] ...
-    python process_swe_projects.py  # Process all projects in current directory
+    python3 process_swe_projects.py [project_dir1] [project_dir2] ...
+    python3 process_swe_projects.py  # Process all projects in current directory
+                                     # (or $SWE_PROJECTS_DIR if set)
 """
 
 import json
 import os
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 import re
 from datetime import datetime
 
@@ -247,9 +248,10 @@ class SWEProjectProcessor:
             derived['patches_available'] = patches.get('gold_src', False) and patches.get('gold_test', False)
 
         # Add commit mapping
+        pr_info = project_data.get('pr_info') or {}
         derived['commit_mapping'] = {
-            'base': project_data.get('pr_info', {}).get('base_commit', 'N/A'),
-            'patch': project_data.get('pr_info', {}).get('patch_commit', 'N/A')
+            'base': pr_info.get('base_commit') or 'N/A',
+            'patch': pr_info.get('patch_commit') or 'N/A'
         }
 
         return derived
@@ -333,7 +335,7 @@ class SWEProjectProcessor:
             json.dump(report, f, indent=2)
 
         print(f"\nReport saved to: {output_path}")
-        print(f"Summary:")
+        print("Summary:")
         print(f"  - Total projects: {report['summary']['total_projects']}")
         print(f"  - Solved: {report['statistics']['solved']}")
         print(f"  - Partially solved: {report['statistics']['partially_solved']}")
@@ -352,28 +354,33 @@ class SWEProjectProcessor:
             derived = result['derived']
             print(f"\n[{derived['project_id']}]")
             print(f"  Status: {derived['evaluation_status']}")
-            print(f"  Commits: {derived['commit_mapping']['base'][:8]} -> {derived['commit_mapping']['patch'][:8]}")
+            base = str(derived['commit_mapping'].get('base') or 'N/A')
+            patch = str(derived['commit_mapping'].get('patch') or 'N/A')
+            print(f"  Commits: {base[:8]} -> {patch[:8]}")
             print(f"  Tests: {derived['metrics'].get('fail_to_pass_count', 'N/A')}")
             print(f"  Success Rate: {derived['metrics'].get('fail_to_pass_success_rate', 0):.1%}")
 
 
-def main():
+def main(argv: Optional[List[str]] = None,
+         report_file: str = 'swe_projects_output.json',
+         derived_file: str = 'derived_outputs.json') -> SWEProjectProcessor:
     """Main entry point."""
+    argv = sys.argv[1:] if argv is None else argv
     # Determine projects to process
-    if len(sys.argv) > 1:
+    if argv:
         # Process specified directories
-        project_dirs = sys.argv[1:]
+        project_dirs = argv
         processor = SWEProjectProcessor()
     else:
-        # Process all in current directory
-        processor = SWEProjectProcessor('/Users/arvind/swe')
+        # Process all in current directory (or SWE_PROJECTS_DIR if set)
+        processor = SWEProjectProcessor(os.environ.get('SWE_PROJECTS_DIR', '.'))
         project_dirs = None
 
     # Process projects
-    report = processor.process_all(project_dirs)
+    processor.process_all(project_dirs)
 
     # Save report
-    processor.save_report()
+    processor.save_report(report_file)
 
     # Print uniform output
     processor.print_uniform_output()
@@ -384,10 +391,11 @@ def main():
         'projects': [r['derived'] for r in processor.results]
     }
 
-    with open('derived_outputs.json', 'w') as f:
+    with open(derived_file, 'w') as f:
         json.dump(derived_outputs, f, indent=2)
 
-    print(f"\nDerived outputs saved to: derived_outputs.json")
+    print(f"\nDerived outputs saved to: {derived_file}")
+    return processor
 
 
 if __name__ == "__main__":

@@ -1,0 +1,4 @@
+swe_projects_output.json
+derived_outputs.json
+__pycache__/
+*.pyc

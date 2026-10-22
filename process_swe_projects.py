@@ -16,7 +16,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 import re
 from datetime import datetime
 
@@ -335,7 +335,7 @@ class SWEProjectProcessor:
             json.dump(report, f, indent=2)
 
         print(f"\nReport saved to: {output_path}")
-        print(f"Summary:")
+        print("Summary:")
         print(f"  - Total projects: {report['summary']['total_projects']}")
         print(f"  - Solved: {report['statistics']['solved']}")
         print(f"  - Partially solved: {report['statistics']['partially_solved']}")
@@ -377,7 +377,7 @@ def main(argv: Optional[List[str]] = None,
         project_dirs = None
 
     # Process projects
-    report = processor.process_all(project_dirs)
+    processor.process_all(project_dirs)
 
     # Save report
     processor.save_report(report_file)
